@@ -1,0 +1,58 @@
+Una vez que tenemos el maximo en xmm3 repetido 4 veces filtramos con un nand en xmm2
+
+|FFFFFFFFFF|00000000|FFFFFFFFF|00000000|   Ejemplo
+
+PHMINPOSUW xmm1, xmm2   buscamos el minimo horizontal en xmm2 y nos deja en los bits 16-18 el índice en el registro de
+                        este minimo
+
+Podemos sacar con un shuffle de a byte el indice y guardarlo en otro xmm. (voy a llamar a este byte b)
+
+Ahora podemos construir una mascara para, usando shuffle de a bytes, escribir en la word más baja ya que deberiamos
+setear la mascara de la siguiente forma
+
+8080808080808080|b+3|b+2|b+1|b
+
+1 > 2 & 3 > 4
+
+1-2-3-4 -> xmm1
+2-3-4-0     cmp greater
+----------
+x - ? - y - ?
+                and
+1-  0 - 1 - 0
+--------------
+x - 0 - y - 0  -> xmm3/xmm2
+                xor
+1 - 1 - 1 - 1  
+---------------
+¬x - 1 - ¬y - 1 
+                and
+ 1 - 0 -  0 - 1 
+---------------
+¬x - 0 - ¬y - 0
+                shift a derecha x 1
+---------------
+0 - ¬x - 0 - ¬y
+                add
+x - 0 - y - 0
+---------------
+x - ¬x - y - ¬y             1>2 y 4>3  x = 1 , ¬x = 0, y = 0, ¬y = 1
+               and
+1 - 2 - 3 - 4
+--------------
+1 - 0 - 0 - 4
+             shift a izq x 2
+0 - 4 - 0 - 0
+
+
+
+0-0-0-b|0-0-0-b|0-0-0-b|0-0-0-b| xmm0
+pasaje
+????|????|0-0-0-bf|0-0-0-bf|  xmm1
+
+shift a derecha xmm0
+0-0-0-0|0-0-0-0|0-0-0-b|0-0-0-b|
+
+0-0-0-0|0-0-0-0|0-0-0-b|0-0-0-b| xmm0
+pasaje
+????|????|0-0-0-bf|0-0-0-bf| xmm2
